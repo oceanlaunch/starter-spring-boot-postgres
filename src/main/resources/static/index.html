@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Notes</title>
+    <style>
+        :root { --bg: #f6f7fb; --card: #fff; --text: #1c2434; --muted: #667085; --line: #e4e7ec; --accent: #2f6fed; }
+        @media (prefers-color-scheme: dark) {
+            :root { --bg: #0f1420; --card: #171e2d; --text: #e6e9f0; --muted: #98a2b3; --line: #2a3346; --accent: #6b9bff; }
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+        main { max-width: 640px; margin: 0 auto; padding: 48px 16px; }
+        h1 { margin: 0 0 4px; font-size: 28px; }
+        p.lead { margin: 0 0 24px; color: var(--muted); }
+        form { display: flex; gap: 8px; margin-bottom: 24px; }
+        input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text); font: inherit; }
+        button { padding: 10px 16px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+        ul { list-style: none; margin: 0; padding: 0; }
+        li { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 12px 16px; margin-bottom: 8px;
+             background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+        li span { overflow-wrap: anywhere; }
+        li small { display: block; color: var(--muted); font-size: 13px; }
+        li button { background: transparent; color: var(--muted); padding: 4px 8px; font-weight: 400; }
+        .empty, .error { color: var(--muted); }
+        .error { color: #d92d20; }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Notes</h1>
+    <p class="lead">Spring Boot + PostgreSQL on OceanLaunch. Notes are kept in your managed database.</p>
+    <form id="add">
+        <input id="text" maxlength="500" placeholder="Write a note" aria-label="Note" required>
+        <button type="submit">Add</button>
+    </form>
+    <p class="error" id="error" hidden></p>
+    <ul id="notes"></ul>
+</main>
+<script>
+    const list = document.getElementById('notes');
+    const error = document.getElementById('error');
+
+    function show(message) {
+        error.textContent = message;
+        error.hidden = !message;
+    }
+
+    async function load() {
+        const response = await fetch('/api/notes');
+        if (!response.ok) { show('The notes could not be loaded.'); return; }
+        const notes = await response.json();
+        list.replaceChildren();
+        if (notes.length === 0) {
+            const empty = document.createElement('li');
+            empty.className = 'empty';
+            empty.textContent = 'No notes yet. Add the first one.';
+            list.append(empty);
+        }
+        for (const note of notes) {
+            const item = document.createElement('li');
+            const body = document.createElement('span');
+            body.textContent = note.text;
+            const when = document.createElement('small');
+            when.textContent = new Date(note.createdAt).toLocaleString();
+            body.append(when);
+            const remove = document.createElement('button');
+            remove.textContent = 'Delete';
+            remove.setAttribute('aria-label', 'Delete note');
+            remove.onclick = async () => { await fetch('/api/notes/' + note.id, { method: 'DELETE' }); load(); };
+            item.append(body, remove);
+            list.append(item);
+        }
+    }
+
+    document.getElementById('add').addEventListener('submit', async event => {
+        event.preventDefault();
+        const input = document.getElementById('text');
+        const response = await fetch('/api/notes', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: input.value })
+        });
+        if (!response.ok) { show('That note could not be saved.'); return; }
+        show('');
+        input.value = '';
+        load();
+    });
+
+    load();
+</script>
+</body>
+</html>
