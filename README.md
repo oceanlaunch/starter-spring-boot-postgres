@@ -17,7 +17,7 @@ To change them, add a new file such as `V2__add_title.sql`; it runs on the next 
 
 In the OceanLaunch portal, open **Templates** and choose **Spring Boot + PostgreSQL**. The portal creates a
 managed database (or uses one you pick), connects it to the app, and deploys. Your app is live at its
-`*.apps.oceanlaunch.cloud` address in a few minutes.
+`*.oceanlaunch.app` address in a few minutes.
 
 ## Make it yours
 
